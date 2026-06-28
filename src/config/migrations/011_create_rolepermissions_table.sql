@@ -1,0 +1,12 @@
+-- Migration: 011_create_rolepermissions_table
+
+CREATE TABLE IF NOT EXISTS rolepermissions (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  role_id BIGINT NOT NULL,
+  permission_id BIGINT NOT NULL,
+  is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_rp_role FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
+  CONSTRAINT fk_rp_permission FOREIGN KEY (permission_id) REFERENCES permissions(id) ON DELETE CASCADE
+);
