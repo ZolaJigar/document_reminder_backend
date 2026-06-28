@@ -6,6 +6,28 @@ require('dotenv').config();
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret';
 const JWT_EXPIRES_IN = '7d';
 
+/**
+ * Insert a record into login_logs.
+ * Fire-and-forget — errors are swallowed so they never break the login flow.
+ */
+const recordLoginLog = async ({ user_id, login_status, failed_reason, req }) => {
+  try {
+    const ip_address = (
+      req.headers['x-forwarded-for']?.split(',')[0] ||
+      req.socket?.remoteAddress ||
+      null
+    );
+    const browser = req.headers['user-agent'] || null;
+
+    await db.execute(
+      'INSERT INTO login_logs (user_id, login_status, failed_reason, ip_address, browser) VALUES (?, ?, ?, ?, ?)',
+      [user_id || null, login_status, failed_reason || null, ip_address, browser]
+    );
+  } catch (err) {
+    console.error('Failed to record login log:', err);
+  }
+};
+
 // Login
 const login = async (req, res) => {
   try {
@@ -21,18 +43,21 @@ const login = async (req, res) => {
     );
 
     if (users.length === 0) {
+      await recordLoginLog({ login_status: 'failed', failed_reason: 'User not found', req });
       return res.status(401).json({ success: false, message: 'Invalid email or password' });
     }
 
     const user = users[0];
 
     if (!user.is_active) {
+      await recordLoginLog({ user_id: user.id, login_status: 'failed', failed_reason: 'Account deactivated', req });
       return res.status(403).json({ success: false, message: 'Account is deactivated. Please contact support.' });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
+      await recordLoginLog({ user_id: user.id, login_status: 'failed', failed_reason: 'Wrong password', req });
       return res.status(401).json({ success: false, message: 'Invalid email or password' });
     }
 
@@ -41,6 +66,8 @@ const login = async (req, res) => {
       JWT_SECRET,
       { expiresIn: JWT_EXPIRES_IN }
     );
+
+    await recordLoginLog({ user_id: user.id, login_status: 'success', req });
 
     res.json({
       success: true,

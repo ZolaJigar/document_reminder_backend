@@ -10,6 +10,8 @@ const reminderRoutes = require('./routes/reminderRoutes');
 const userRoutes = require('./routes/userRoutes');
 const roleRoutes = require('./routes/roles');
 const permissionRoutes = require('./routes/permissions');
+const loginLogRoutes = require('./routes/loginLogRoutes');
+const emailLogRoutes = require('./routes/emailLogRoutes');
 const { startCronJobs } = require('./controllers/cronController');
 
 const app = express();
@@ -36,6 +38,8 @@ app.use('/api/document-types', documentTypeRoutes);
 app.use('/api/reminders', reminderRoutes);
 app.use('/api/roles', roleRoutes);
 app.use('/api/permissions', permissionRoutes);
+app.use('/api/login-logs', loginLogRoutes);
+app.use('/api/email-logs', emailLogRoutes);
 
 // 404 handler
 app.use((req, res) => {
