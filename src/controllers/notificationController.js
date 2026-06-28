@@ -97,6 +97,21 @@ function buildEmailHtml(reminder, documentTitle) {
 async function sendNotifications(reminder, recipients) {
   const results = { email: [], whatsapp: [] };
 
+  // Deduplicate recipients by email and phone to avoid sending twice
+  const seenEmails = new Set();
+  const seenPhones = new Set();
+  recipients = recipients.filter(r => {
+    if (r.notify_email && r.email) {
+      if (seenEmails.has(r.email)) return false;
+      seenEmails.add(r.email);
+    }
+    if (r.notify_whatsapp && r.phone) {
+      if (seenPhones.has(r.phone)) return false;
+      seenPhones.add(r.phone);
+    }
+    return true;
+  });
+
   const subject = `🔔 Reminder: ${reminder.document_title}`;
   const htmlBody = buildEmailHtml(reminder, reminder.document_title);
   const whatsappMessage = `📄 *Document Reminder*\n\nDocument: *${reminder.document_title}*\nDate: ${reminder.reminder_date}\nTime: ${reminder.reminder_time}${reminder.expiry_date ? `\nExpiry: ${reminder.expiry_date}` : ''}${reminder.message ? `\n\nNote: ${reminder.message}` : ''}`;

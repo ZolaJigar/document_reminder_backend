@@ -100,8 +100,8 @@ const listRole = async (req, res) => {
       `SELECT * FROM roles
        WHERE is_deleted = 0 AND (name LIKE ? OR slug LIKE ?)
        ORDER BY id DESC
-       LIMIT ? OFFSET ?`,
-      [searchParam, searchParam, limit, offset]
+       LIMIT ${limit} OFFSET ${offset}`,
+      [searchParam, searchParam]
     );
 
     if (roles.length === 0) {

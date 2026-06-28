@@ -6,15 +6,16 @@ const {
 } = require('../controllers/documentController');
 const { authenticate } = require('../middleware/auth');
 const { upload } = require('../middleware/upload');
+const checkPermission = require('../middleware/checkPermission');
 
 router.use(authenticate);
 
-router.get('/', getDocuments);
-router.get('/categories', getCategories);
-router.get('/:id', getDocument);
-router.post('/', upload.single('file'), createDocument);
-router.put('/:id', upload.single('file'), updateDocument);
-router.delete('/:id', deleteDocument);
-router.get('/:id/download', downloadDocument);
+router.get('/',              checkPermission('documents_list'),   getDocuments);
+router.get('/categories',    checkPermission('documents_list'),   getCategories);
+router.get('/:id',           checkPermission('documents_detail'), getDocument);
+router.post('/',             checkPermission('documents_create'), upload.single('file'), createDocument);
+router.put('/:id',           checkPermission('documents_edit'),   upload.single('file'), updateDocument);
+router.delete('/:id',        checkPermission('documents_delete'), deleteDocument);
+router.get('/:id/download',  checkPermission('documents_detail'), downloadDocument);
 
 module.exports = router;

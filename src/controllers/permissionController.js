@@ -26,8 +26,8 @@ const listPermission = async (req, res) => {
        LEFT JOIN permissions parent ON parent.id = p.parent_id
        WHERE p.is_deleted = 0 AND (p.name LIKE ? OR p.slug LIKE ?)
        ORDER BY p.order_index ASC
-       LIMIT ? OFFSET ?`,
-      [searchParam, searchParam, limit, offset]
+       LIMIT ${limit} OFFSET ${offset}`,
+      [searchParam, searchParam]
     );
 
     const data = permissions.map((p) => ({

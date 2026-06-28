@@ -5,8 +5,10 @@ const db = require('../config/database');
 // GET /api/users?search=&is_active=&is_admin=&page=1&limit=20
 const getUsers = async (req, res) => {
   try {
-    const { search, is_active, is_admin, page = 1, limit = 20 } = req.query;
-    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const { search, is_active, is_admin } = req.query;
+    const page   = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit  = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
+    const offset = (page - 1) * limit;
 
     let query = `
       SELECT u.id, u.name, u.email, u.phone, u.is_admin, u.is_active, u.role_id,
@@ -39,8 +41,7 @@ const getUsers = async (req, res) => {
     );
     const [[{ total }]] = await db.execute(countQuery, params);
 
-    query += ' ORDER BY u.created_at DESC LIMIT ? OFFSET ?';
-    params.push(parseInt(limit), offset);
+    query += ` ORDER BY u.created_at DESC LIMIT ${limit} OFFSET ${offset}`;
 
     const [rows] = await db.execute(query, params);
 
@@ -60,10 +61,10 @@ const getUsers = async (req, res) => {
       success: true,
       data,
       pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
+        page,
+        limit,
         total,
-        pages: Math.ceil(total / parseInt(limit)),
+        pages: Math.ceil(total / limit),
       },
     });
   } catch (error) {

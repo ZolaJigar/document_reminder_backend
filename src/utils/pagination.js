@@ -7,7 +7,7 @@ const parsePagination = ({ page, limit } = {}) => {
   const parsedPage  = Math.max(1, parseInt(page)  || 1);
   const parsedLimit = Math.min(100, Math.max(1, parseInt(limit) || 10));
   const offset      = (parsedPage - 1) * parsedLimit;
-  return { page: parsedPage, limit: parsedLimit, offset };
+  return { page: parsedPage | 0, limit: parsedLimit | 0, offset: offset | 0 };
 };
 
 module.exports = { parsePagination };

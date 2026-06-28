@@ -6,48 +6,6 @@ require('dotenv').config();
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret';
 const JWT_EXPIRES_IN = '7d';
 
-// Register new user
-const register = async (req, res) => {
-  try {
-    const { name, email, password, phone } = req.body;
-
-    if (!name || !email || !password) {
-      return res.status(400).json({ success: false, message: 'Name, email, and password are required' });
-    }
-
-    if (password.length < 6) {
-      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
-    }
-
-    // Check if email exists
-    const [existing] = await db.execute('SELECT id FROM users WHERE email = ?', [email]);
-    if (existing.length > 0) {
-      return res.status(409).json({ success: false, message: 'Email already registered' });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 12);
-
-    const [result] = await db.execute(
-      'INSERT INTO users (name, email, password, phone) VALUES (?, ?, ?, ?)',
-      [name, email.toLowerCase().trim(), hashedPassword, phone || null]
-    );
-
-    const token = jwt.sign({ id: result.insertId, email, name }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
-
-    res.status(201).json({
-      success: true,
-      message: 'Registration successful',
-      data: {
-        token,
-        user: { id: result.insertId, name, email, phone },
-      },
-    });
-  } catch (error) {
-    console.error('Register error:', error);
-    res.status(500).json({ success: false, message: 'Server error during registration' });
-  }
-};
-
 // Login
 const login = async (req, res) => {
   try {
@@ -58,7 +16,7 @@ const login = async (req, res) => {
     }
 
     const [users] = await db.execute(
-      'SELECT id, name, email, password, phone, is_admin, is_active FROM users WHERE email = ?',
+      'SELECT id, name, email, password, phone, is_admin, is_active, role_id FROM users WHERE email = ?',
       [email.toLowerCase().trim()]
     );
 
@@ -79,7 +37,7 @@ const login = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user.id, email: user.email, name: user.name, is_admin: Boolean(user.is_admin) },
+      { id: user.id, email: user.email, name: user.name, is_admin: Boolean(user.is_admin), role_id: user.role_id },
       JWT_SECRET,
       { expiresIn: JWT_EXPIRES_IN }
     );
@@ -89,7 +47,7 @@ const login = async (req, res) => {
       message: 'Login successful',
       data: {
         token,
-        user: { id: user.id, name: user.name, email: user.email, phone: user.phone, is_admin: Boolean(user.is_admin) },
+        user: { id: user.id, name: user.name, email: user.email, phone: user.phone, is_admin: Boolean(user.is_admin), role_id: user.role_id },
       },
     });
   } catch (error) {
@@ -160,4 +118,4 @@ const changePassword = async (req, res) => {
   }
 };
 
-module.exports = { register, login, getProfile, updateProfile, changePassword };
+module.exports = { login, getProfile, updateProfile, changePassword };
