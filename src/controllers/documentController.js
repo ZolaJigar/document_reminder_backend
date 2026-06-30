@@ -116,10 +116,18 @@ const getDocument = async (req, res) => {
 // Create document
 const createDocument = async (req, res) => {
   try {
-    const { title, description, category, document_type_id, expiry_date, notes } = req.body;
+    const { title, description, category, document_type_id, expiry_date, notes, renewal_cost } = req.body;
 
     if (!title) {
       return res.status(400).json({ success: false, message: 'Document title is required' });
+    }
+
+    // Validate renewal_cost if provided
+    if (renewal_cost !== undefined && renewal_cost !== null && renewal_cost !== '') {
+      const cost = parseFloat(renewal_cost);
+      if (isNaN(cost) || cost < 0) {
+        return res.status(400).json({ success: false, message: 'renewal_cost must be a non-negative number' });
+      }
     }
 
     // Validate document_type_id if provided
@@ -152,8 +160,8 @@ const createDocument = async (req, res) => {
 
     const [result] = await db.execute(
       `INSERT INTO documents
-         (user_id, document_type_id, title, description, category, file_name, file_path, file_type, file_size, expiry_date, notes, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (user_id, document_type_id, title, description, category, file_name, file_path, file_type, file_size, expiry_date, renewal_cost, notes, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         req.user.id,
         document_type_id || null,
@@ -162,6 +170,7 @@ const createDocument = async (req, res) => {
         category || null,
         file_name, file_path, file_type, file_size,
         expiry_date || null,
+        (renewal_cost !== undefined && renewal_cost !== null && renewal_cost !== '') ? parseFloat(renewal_cost) : null,
         notes || null,
         status,
       ]
@@ -193,7 +202,7 @@ const updateDocument = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Document not found' });
     }
 
-    const { title, description, category, document_type_id, expiry_date, notes } = req.body;
+    const { title, description, category, document_type_id, expiry_date, notes, renewal_cost } = req.body;
     const doc = existing[0];
 
     // Validate document_type_id if provided
@@ -204,6 +213,14 @@ const updateDocument = async (req, res) => {
       );
       if (dtRows.length === 0) {
         return res.status(400).json({ success: false, message: 'Invalid or inactive document type' });
+      }
+    }
+
+    // Validate renewal_cost if provided
+    if (renewal_cost !== undefined && renewal_cost !== null && renewal_cost !== '') {
+      const cost = parseFloat(renewal_cost);
+      if (isNaN(cost) || cost < 0) {
+        return res.status(400).json({ success: false, message: 'renewal_cost must be a non-negative number' });
       }
     }
 
@@ -230,11 +247,16 @@ const updateDocument = async (req, res) => {
     // document_type_id: use new value if explicitly passed (even null to clear it), else keep existing
     const newDocumentTypeId = document_type_id !== undefined ? (document_type_id || null) : doc.document_type_id;
 
+    // renewal_cost: use new value if explicitly passed, else keep existing
+    const newRenewalCost = (renewal_cost !== undefined)
+      ? ((renewal_cost !== null && renewal_cost !== '') ? parseFloat(renewal_cost) : null)
+      : doc.renewal_cost;
+
     await db.execute(
       `UPDATE documents
        SET title = ?, description = ?, category = ?, document_type_id = ?,
            file_name = ?, file_path = ?, file_type = ?, file_size = ?,
-           expiry_date = ?, notes = ?, status = ?
+           expiry_date = ?, renewal_cost = ?, notes = ?, status = ?
        WHERE id = ? AND user_id = ?`,
       [
         title || doc.title,
@@ -243,6 +265,7 @@ const updateDocument = async (req, res) => {
         newDocumentTypeId,
         file_name, file_path, file_type, file_size,
         expiry_date || null,
+        newRenewalCost,
         notes || null,
         status,
         req.params.id,

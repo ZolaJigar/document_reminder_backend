@@ -12,7 +12,10 @@ const roleRoutes = require('./routes/roles');
 const permissionRoutes = require('./routes/permissions');
 const loginLogRoutes = require('./routes/loginLogRoutes');
 const emailLogRoutes = require('./routes/emailLogRoutes');
+const fcmRoutes = require('./routes/fcmRoutes');
+const dashboardRoutes = require('./routes/dashboardRoutes');
 const { startCronJobs } = require('./controllers/cronController');
+const { getFirebaseApp } = require('./config/firebase');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -40,6 +43,8 @@ app.use('/api/roles', roleRoutes);
 app.use('/api/permissions', permissionRoutes);
 app.use('/api/login-logs', loginLogRoutes);
 app.use('/api/email-logs', emailLogRoutes);
+app.use('/api/fcm', fcmRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // 404 handler
 app.use((req, res) => {
@@ -60,6 +65,8 @@ app.listen(PORT, () => {
   console.log(`\n🚀 Document Reminder API running on port ${PORT}`);
   console.log(`📖 Health check: http://localhost:${PORT}/health`);
   console.log(`📦 API Base URL: http://localhost:${PORT}/api\n`);
+  // Initialise Firebase Admin SDK eagerly so any config errors surface at boot
+  getFirebaseApp();
   startCronJobs();
 });
 
